@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Happy Dada</title>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+@font-face {
+            font-family: 'Bobbol';
+            src: url('Bobbol-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+body {
+  font-family: 'Bobbol', serif;
+  background-color: #f8f4ef;
+  background-image: url("assets/concrete-wall.png");
+  background-size: cover;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#gameContainer {
+  position: relative;
+  width: 80vw;
+  height: 80vh;
+  overflow: hidden;
+}
+
+
+#startButtonContainer,
+#countdown,
+#gameOverPopup {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+#startButtonContainer {
+  text-align: center;
+}
+
+#startButton {
+  font-family: inherit;
+  padding: 10px 20px;
+  font-size: 18px;
+  cursor: pointer;
+  margin-top: 15px;
+}
+
+#startMessage {
+  font-size: 20px;
+  margin-bottom: 10px;
+  color: #5b4a37;
+}
+
+#countdown {
+  font-size: 48px;
+  color: #d47629;
+  display: none;
+}
+
+#scoreDisplay {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 20px;
+  font-weight: bold;
+  color: #5b4a37;
+}
+
+#gameOverPopup {
+  background: rgba(93, 150, 208, 0.75);
+  color: white;
+  padding: 25px;
+  border-radius: 12px;
+  display: none;
+  text-align: center;
+}
+
+
+#player {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+#player img {
+  width: 120px;
+}
+
+
+
+.fallingObject {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  background-size: cover;
+}
+
+
+#heartsContainer {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 10px;
+}
+
+.heart {
+  width: 30px;
+  height: 30px;
+  background-image: url("heart.PNG");
+  background-size: cover;
+}
+
+.heart.lost {
+  background-image: url("heart2.PNG");
+}
+
+
+#itemRow {
+  position: absolute;
+  top: 40px;              
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  
+}
+
+
+.itemIcon {
+  width: 45px;
+  height: 45px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.85;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="gameContainer">
+  <div id="itemRow"></div>
+  <div id="scoreDisplay"></div>
+  <div id="heartsContainer"></div>
+
+  <div id="startButtonContainer">
+    <div id="startMessage">Collect relaxation, avoid troublemakers!</div>
+    <button id="startButton">Start</button>
+  </div>
+
+  <div id="countdown">3</div>
+
+  <div id="player">
+    <img src="Dada0.PNG" id="playerImage">
+  </div>
+
+  <div id="gameOverPopup"></div>
+
+</div>
+
+<script>
+
+const OBJECT_TYPES = {
+  excel: {
+    img: "excel.PNG",
+    good: true,
+    count: 0
+  },
+  coffee: {
+    img: "coffee.PNG",
+    good: true,
+    count: 0
+  },
+  isee: {
+    img: "isee.PNG",
+     isHazard: true
+  },
+    idea: {
+    img: "idea.PNG",
+    isHazard: true
+  },
+    mom: {
+    img: "mom.PNG",
+    good: true,
+    count: 0
+  },
+  garden: {
+    img: "garden.PNG",
+   good: true
+  }
+};
+
+
+
+let gameRunning = false;
+let spawnInterval;
+let bombCount = 0;
+const maxLives = 3;
+let hearts = [];
+let score = 0;
+
+const gameContainer = document.getElementById("gameContainer");
+const player = document.getElementById("player");
+const playerImage = document.getElementById("playerImage");
+const scoreDisplay = document.getElementById("scoreDisplay");
+
+
+
+document.getElementById("startButton").onclick = startGame;
+
+function startGame() {
+  document.getElementById("startButtonContainer").style.display = "none";
+  initHearts();
+  initItemRow();
+  resetScore();
+  startCountdown();
+  
+}
+
+
+
+function initHearts() {
+  const container = document.getElementById("heartsContainer");
+  container.innerHTML = "";
+  hearts = [];
+  bombCount = 0;
+
+  for (let i = 0; i < maxLives; i++) {
+    const h = document.createElement("div");
+    h.className = "heart";
+    container.appendChild(h);
+    hearts.push(h);
+  }
+}
+
+function resetScore() {
+  score = 0;
+  Object.values(OBJECT_TYPES).forEach(o => {
+    if (o.good) o.count = 0;
+  });
+  updateScore();
+}
+
+function updateScore() {
+  scoreDisplay.innerText = `${score}`;
+}
+
+
+function startCountdown() {
+  const countdown = document.getElementById("countdown");
+  let n = 3;
+  countdown.style.display = "block";
+
+  const timer = setInterval(() => {
+    countdown.innerText = n--;
+    if (n < 0) {
+      clearInterval(timer);
+      countdown.style.display = "none";
+      gameRunning = true;
+      spawnInterval = setInterval(spawnObject, 500);
+    }
+  }, 500);
+}
+
+
+function spawnObject() {
+  if (!gameRunning) return;
+
+  const keys = Object.keys(OBJECT_TYPES);
+  const type = keys[Math.floor(Math.random() * keys.length)];
+  const data = OBJECT_TYPES[type];
+
+  const obj = document.createElement("div");
+  obj.className = "fallingObject";
+  obj.style.backgroundImage = `url("${data.img}")`;
+  obj.style.left = Math.random() * (gameContainer.offsetWidth - 50) + "px";
+  obj.style.top = "0px";
+
+  gameContainer.appendChild(obj);
+
+  const speed = 4 + Math.random() * 5;
+
+  const fall = setInterval(() => {
+    if (!gameRunning) {
+      obj.remove();
+      clearInterval(fall);
+      return;
+    }
+
+    obj.style.top = obj.offsetTop + speed + "px";
+
+    if (obj.offsetTop > gameContainer.offsetHeight - 80) {
+      handleCollision(obj, type);
+      clearInterval(fall);
+    }
+  }, 20);
+}
+
+
+function handleCollision(obj, type) {
+  if (!isColliding(obj)) {
+    obj.remove();
+    return;
+  }
+
+  const data = OBJECT_TYPES[type];
+
+  if (data.isHazard) {
+    bombCount++;
+    hearts[bombCount - 1]?.classList.add("lost");
+    flashPlayer("Dada2.PNG");
+
+    if (bombCount >= maxLives) {
+      endGame();
+    }
+  } else {
+    data.count++;
+    score += 10;
+    updateScore();
+    flashPlayer("Dada.PNG");
+  }
+
+  obj.remove();
+}
+
+function isColliding(obj) {
+  const o = obj.getBoundingClientRect();
+  const p = player.getBoundingClientRect();
+  return o.bottom >= p.top && o.left <= p.right && o.right >= p.left;
+}
+
+
+function endGame() {
+  gameRunning = false;
+  clearInterval(spawnInterval);
+  document.querySelectorAll(".fallingObject").forEach(o => o.remove());
+
+  document.getElementById("gameOverPopup").innerHTML = `
+    <h2>Yippie!!!</h2>
+    <p>you got:</p>
+    <p style="font-size: 28px;"><strong>${score}</strong></p>
+
+    <p>Happy Birthday Dada! Miss you a lot!! Today is your birthday, go do something fun / relaxing, eat good food and let's call later! I hope you have a happy year ahead yippieee!</p>
+  `;
+
+  document.getElementById("gameOverPopup").style.display = "block";
+}
+
+
+function flashPlayer(src) {
+  playerImage.src = src;
+  setTimeout(() => playerImage.src = "Dada0.PNG", 400);
+}
+
+
+function initItemRow() {
+  const row = document.getElementById("itemRow");
+  row.innerHTML = "";
+
+  Object.values(OBJECT_TYPES).forEach(obj => {
+    const icon = document.createElement("div");
+    icon.className = "itemIcon";
+    icon.style.backgroundImage = `url("${obj.img}")`;
+    row.appendChild(icon);
+  });
+}
+
+
+document.addEventListener("mousemove", e => {
+  const x = e.clientX - player.offsetWidth / 2;
+  player.style.left =
+    Math.max(0, Math.min(x, gameContainer.offsetWidth)) + "px";
+});
+</script>
+
+</body>
+</html>
+
