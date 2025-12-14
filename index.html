@@ -384,32 +384,11 @@ function initItemRow() {
 }
 
 
-function movePlayer(clientX) {
-  const rect = gameContainer.getBoundingClientRect();
-  let x = clientX - rect.left - player.offsetWidth / 2;
-
-  x = Math.max(0, Math.min(x, rect.width - player.offsetWidth));
-  player.style.left = x + "px";
-}
-
 document.addEventListener("mousemove", e => {
-  if (!gameRunning) return;
-  movePlayer(e.clientX);
+  const x = e.clientX - player.offsetWidth / 2;
+  player.style.left =
+    Math.max(0, Math.min(x, gameContainer.offsetWidth)) + "px";
 });
-
-
-gameContainer.addEventListener("touchstart", e => {
-  e.preventDefault();
-  if (!gameRunning) return;
-  movePlayer(e.touches[0].clientX);
-}, { passive: false });
-
-gameContainer.addEventListener("touchmove", e => {
-  e.preventDefault();
-  if (!gameRunning) return;
-  movePlayer(e.touches[0].clientX);
-}, { passive: false });
-
 </script>
 
 </body>
