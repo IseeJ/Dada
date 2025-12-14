@@ -34,6 +34,7 @@ body {
   width: 80vw;
   height: 80vh;
   overflow: hidden;
+  touch-action: none;
 }
 
 
@@ -384,11 +385,32 @@ function initItemRow() {
 }
 
 
+function movePlayer(clientX) {
+  const rect = gameContainer.getBoundingClientRect();
+  let x = clientX - rect.left - player.offsetWidth / 2;
+
+  x = Math.max(0, Math.min(x, rect.width - player.offsetWidth));
+  player.style.left = x + "px";
+}
+
 document.addEventListener("mousemove", e => {
-  const x = e.clientX - player.offsetWidth / 2;
-  player.style.left =
-    Math.max(0, Math.min(x, gameContainer.offsetWidth)) + "px";
+  if (!gameRunning) return;
+  movePlayer(e.clientX);
 });
+
+
+gameContainer.addEventListener("touchstart", e => {
+  e.preventDefault();
+  if (!gameRunning) return;
+  movePlayer(e.touches[0].clientX);
+}, { passive: false });
+
+gameContainer.addEventListener("touchmove", e => {
+  e.preventDefault();
+  if (!gameRunning) return;
+  movePlayer(e.touches[0].clientX);
+}, { passive: false });
+
 </script>
 
 </body>
